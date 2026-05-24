@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fire Detection System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@400;500;600;700;900&display=swap"
+        rel="stylesheet">
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --fire1: #FF4500;
+            --fire2: #FF6B00;
+            --fire3: #FFA500;
+            --amber: #FFB800;
+            --red: #FF3333;
+            --green: #00FF88;
+            --smoke: #8B8B8B;
+            --bg-dark: #0D0D0F;
+            --bg-card: #141416;
+            --bg-panel: #1A1A1E;
+            --border: #2A2A30;
+            --text-pri: #F0F0F0;
+            --text-sec: #9090A0;
+            --mono: 'Share Tech Mono', monospace;
+            --sans: 'Barlow', sans-serif;
+        }
+
+        body {
+            background: var(--bg-dark);
+            color: var(--text-pri);
+            font-family: var(--sans);
+            min-height: 100vh;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .wrapper {
+            width: 100%;
+            max-width: 860px;
+            border-radius: 14px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        /* ── Header ── */
+        .header {
+            background: linear-gradient(135deg, #1a0800 0%, #0D0D0F 60%);
+            border-bottom: 1px solid #3A1800;
+            padding: 22px 28px 18px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -40px;
+            right: -40px;
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 69, 0, 0.15) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .header-top {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 8px;
+        }
+
+        .fire-icon {
+            font-size: 30px;
+            animation: flicker 1.5s ease-in-out infinite alternate;
+        }
+
+        .header-title {
+            font-size: 24px;
+            font-weight: 900;
+            letter-spacing: 0.5px;
+        }
+
+        .header-title span {
+            color: var(--fire2);
+        }
+
+        .header-sub {
+            font-size: 11px;
+            color: var(--text-sec);
+            font-family: var(--mono);
+            letter-spacing: 1.5px;
+        }
+
+        .status-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 8px var(--green);
+            animation: pulse-dot 2s infinite;
+        }
+
+        .status-text {
+            font-size: 11px;
+            font-family: var(--mono);
+            color: var(--green);
+            letter-spacing: 1px;
+        }
+
+        .uptime {
+            font-size: 11px;
+            font-family: var(--mono);
+            color: var(--text-sec);
+            margin-left: auto;
+        }
+
+        /* ── Metrics ── */
+        .metrics-wrap {
+            padding: 16px 28px 14px;
+        }
+
+        .metrics-strip {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1px;
+            background: var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .metric {
+            background: var(--bg-panel);
+            padding: 12px 14px;
+        }
+
+        .metric-val {
+            font-size: 20px;
+            font-weight: 700;
+            font-family: var(--mono);
+        }
+
+        .metric-val.red {
+            color: var(--red);
+        }
+
+        .metric-val.amber {
+            color: var(--amber);
+        }
+
+        .metric-val.green {
+            color: var(--green);
+        }
+
+        .metric-val.white {
+            color: var(--text-pri);
+        }
+
+        .metric-lbl {
+            font-size: 9px;
+            font-family: var(--mono);
+            color: var(--text-sec);
+            letter-spacing: 1px;
+            margin-top: 3px;
+        }
+
+        /* ── Alert Banner ── */
+        .alert-banner {
+            margin: 0 28px 16px;
+            background: rgba(255, 69, 0, 0.08);
+            border: 1px solid rgba(255, 69, 0, 0.4);
+            border-radius: 8px;
+            padding: 10px 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .alert-icon {
+            font-size: 18px;
+            animation: flicker 0.8s infinite alternate;
+        }
+
+        .alert-msg {
+            font-size: 11px;
+            font-family: var(--mono);
+            color: var(--fire2);
+            letter-spacing: 0.5px;
+        }
+
+        .alert-action {
+            margin-left: auto;
+            font-size: 10px;
+            font-family: var(--mono);
+            color: var(--fire1);
+            border: 1px solid rgba(255, 69, 0, 0.5);
+            padding: 4px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            background: transparent;
+            transition: background 0.2s;
+            white-space: nowrap;
+        }
+
+        .alert-action:hover {
+            background: rgba(255, 69, 0, 0.15);
+        }
+
+        /* ── Camera Grid ── */
+        .camera-section {
+            padding: 0 28px 16px;
+        }
+
+        .section-label {
+            font-size: 10px;
+            font-family: var(--mono);
+            color: var(--text-sec);
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+        }
+
+        .camera-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .cam-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        .cam-card:hover {
+            border-color: #555;
+        }
+
+        .cam-card.alert {
+            border-color: var(--fire1);
+            box-shadow: 0 0 14px rgba(255, 69, 0, 0.25);
+        }
+
+        .cam-card.warning {
+            border-color: var(--amber);
+            box-shadow: 0 0 10px rgba(255, 184, 0, 0.15);
+        }
+
+        .cam-feed {
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            position: relative;
+            overflow: hidden;
+            background: #080808;
+        }
+
+        /* Scenes */
+        .scene {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .scene-clear {
+            background: linear-gradient(180deg, #1a2a1a 0%, #0d1a0d 100%);
+        }
+
+        .scene-smoke {
+            background: linear-gradient(180deg, #1a1a20 0%, #0d0d12 100%);
+        }
+
+        .scene-fire {
+            background: linear-gradient(180deg, #1a0800 0%, #0d0500 100%);
+        }
+
+        /* Flames */
+        .flame {
+            position: absolute;
+            bottom: 0;
+            border-radius: 50% 50% 20% 20%;
+            animation: burn linear infinite;
+            opacity: 0.9;
+        }
+
+        @keyframes burn {
+            0% {
+                transform: translateY(0) scaleX(1);
+                opacity: 0.9;
+            }
+
+            50% {
+                transform: translateY(-60%) scaleX(0.8);
+                opacity: 0.7;
+            }
+
+            100% {
+                transform: translateY(-120%) scaleX(0.6);
+                opacity: 0;
+            }
+        }
+
+        /* Smoke particles */
+        .smoke-particle {
+            position: absolute;
+            border-radius: 50%;
+            animation: rise linear infinite;
+            opacity: 0.4;
+        }
+
+        @keyframes rise {
+            0% {
+                transform: translateY(0) scale(1);
+                opacity: 0.4;
+            }
+
+            100% {
+                transform: translateY(-200%) scale(3);
+                opacity: 0;
+            }
+        }
+
+        /* Detection overlay */
+        .grid-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .detection-box {
+            position: absolute;
+            border: 1px solid rgba(255, 69, 0, 0.85);
+            border-radius: 3px;
+            animation: blink-box 1s ease-in-out infinite;
+        }
+
+        @keyframes blink-box {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.35;
+            }
+        }
+
+        .det-label {
+            position: absolute;
+            top: -1px;
+            left: -1px;
+            background: var(--fire1);
+            color: #fff;
+            font-size: 8px;
+            font-family: var(--mono);
+            padding: 2px 5px;
+            border-radius: 2px 0 3px 0;
+            white-space: nowrap;
+        }
+
+        .cam-meta {
+            padding: 7px 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .cam-id {
+            font-size: 10px;
+            font-family: var(--mono);
+            color: var(--text-sec);
+        }
+
+        .cam-badge {
+            font-size: 9px;
+            font-family: var(--mono);
+            padding: 2px 7px;
+            border-radius: 3px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-clear {
+            background: rgba(0, 255, 136, 0.1);
+            color: var(--green);
+        }
+
+        .badge-smoke {
+            background: rgba(255, 184, 0, 0.15);
+            color: var(--amber);
+        }
+
+        .badge-fire {
+            background: rgba(255, 69, 0, 0.2);
+            color: var(--fire1);
+        }
+
+        .badge-spread {
+            background: rgba(255, 51, 51, 0.2);
+            color: var(--red);
+            animation: blink-badge 0.8s infinite;
+        }
+
+        @keyframes blink-badge {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.45;
+            }
+        }
+
+        /* Camera scene icon */
+        .scene-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            opacity: 0.07;
+            pointer-events: none;
+        }
+
+        /* ── Detection Log ── */
+        .log-section {
+            padding: 0 28px 16px;
+        }
+
+        .log-list {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .log-entry {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-left-width: 3px;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-family: var(--mono);
+            font-size: 10px;
+        }
+
+        .log-entry.log-fire {
+            border-left-color: var(--fire1);
+        }
+
+        .log-entry.log-smoke {
+            border-left-color: var(--amber);
+        }
+
+        .log-entry.log-ok {
+            border-left-color: var(--green);
+        }
+
+        .log-time {
+            color: var(--text-sec);
+            min-width: 52px;
+        }
+
+        .log-cam {
+            color: var(--text-sec);
+            min-width: 54px;
+        }
+
+        .log-msg {
+            color: var(--text-pri);
+            flex: 1;
+        }
+
+        .log-conf {
+            min-width: 38px;
+            text-align: right;
+        }
+
+        /* ── Use Cases ── */
+        .usecases {
+            display: flex;
+            gap: 8px;
+            padding: 0 28px 16px;
+        }
+
+        .uc {
+            flex: 1;
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 10px 10px;
+            text-align: center;
+        }
+
+        .uc-icon {
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+
+        .uc-name {
+            font-size: 9px;
+            font-family: var(--mono);
+            color: var(--text-sec);
+            letter-spacing: 1px;
+        }
+
+        /* ── Tech Stack ── */
+        .stack-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding: 0 28px 20px;
+        }
+
+        .stack-pill {
+            background: rgba(255, 107, 0, 0.08);
+            border: 1px solid rgba(255, 107, 0, 0.25);
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-size: 10px;
+            font-family: var(--mono);
+            color: var(--fire2);
+        }
+
+        /* ── Animations ── */
+        @keyframes flicker {
+            0% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            100% {
+                opacity: 0.7;
+                transform: scale(0.95) translateY(-2px);
+            }
+        }
+
+        @keyframes pulse-dot {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.35;
+            }
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 600px) {
+            .camera-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .metrics-strip {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .usecases {
+                flex-direction: column;
+            }
+
+            body {
+                padding: 12px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="wrapper">
+
+        <!-- Header -->
+        <div class="header">
+            <div class="header-top">
+                <span class="fire-icon">🔥</span>
+                <div>
+                    <div class="header-title">Fire<span>  Detection</span></div>
+                    <div class="header-sub">NEURAL SURVEILLANCE SYSTEM v2.4.1</div>
+                </div>
+            </div>
+            <div class="status-bar">
+                <div class="status-dot"></div>
+                <div class="status-text">SYSTEM ONLINE — MONITORING 6 FEEDS</div>
+                <div class="uptime">UPTIME 99.97%</div>
+            </div>
+        </div>
+
+        <!-- Metrics -->
+        <div class="metrics-wrap">
+            <div class="metrics-strip">
+                <div class="metric">
+                    <div class="metric-val red">2</div>
+                    <div class="metric-lbl">ACTIVE ALERTS</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-val amber">1</div>
+                    <div class="metric-lbl">SMOKE DETECTED</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-val green">98.4%</div>
+                    <div class="metric-lbl">ACCURACY</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-val white" id="fps-val">30</div>
+                    <div class="metric-lbl">FPS ANALYZED</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alert Banner -->
+        <div class="alert-banner">
+            <span class="alert-icon">⚠</span>
+            <div class="alert-msg">FIRE SPREAD DETECTED — CAM-04 ZONE B · AUTO-DISPATCH TRIGGERED</div>
+            <button class="alert-action">RESPOND →</button>
+        </div>
+
+        <!-- Camera Feeds -->
+        <div class="camera-section">
+            <div class="section-label">LIVE CAMERA FEEDS</div>
+            <div class="camera-grid">
+
+                <!-- CAM-01 Clear -->
+                <div class="cam-card">
+                    <div class="cam-feed">
+                        <div class="scene scene-clear">
+                            <span class="scene-icon">🏭</span>
+                        </div>
+                    </div>
+                    <div class="cam-meta">
+                        <div class="cam-id">CAM-01</div>
+                        <div class="cam-badge badge-clear">CLEAR</div>
+                    </div>
+                </div>
+
+                <!-- CAM-02 Smoke -->
+                <div class="cam-card warning">
+                    <div class="cam-feed">
+                        <div class="scene scene-smoke"></div>
+                        <div class="smoke-particle"
+                            style="left:30%;bottom:40%;width:22px;height:22px;background:#888;animation-duration:3s;">
+                        </div>
+                        <div class="smoke-particle"
+                            style="left:50%;bottom:30%;width:30px;height:30px;background:#777;animation-duration:2.5s;animation-delay:0.8s;">
+                        </div>
+                        <div class="smoke-particle"
+                            style="left:20%;bottom:50%;width:18px;height:18px;background:#999;animation-duration:2s;animation-delay:1.5s;">
+                        </div>
+                        <div class="grid-overlay">
+                            <div class="detection-box" style="left:15%;top:20%;width:55%;height:60%;">
+                                <div class="det-label">SMOKE 87%</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="cam-meta">
+                        <div class="cam-id">CAM-02</div>
+                        <div class="cam-badge badge-smoke">SMOKE</div>
+                    </div>
+                </div>
+
+                <!-- CAM-03 Clear -->
+                <div class="cam-card">
+                    <div class="cam-feed">
+                        <div class="scene scene-clear">
+                            <span class="scene-icon">🌲</span>
+                        </div>
+                    </div>
+                    <div class="cam-meta">
+                        <div class="cam-id">CAM-03</div>
+                        <div class="cam-badge badge-clear">CLEAR</div>
+                    </div>
+                </div>
+
+                <!-- CAM-04 Fire Spread -->
+                <div class="cam-card alert">
+                    <div class="cam-feed">
+                        <div class="scene scene-fire"></div>
+                        <div class="flame"
+                            style="left:15%;width:20px;height:34px;background:linear-gradient(var(--fire3),var(--fire1));animation-duration:0.7s;">
+                        </div>
+                        <div class="flame"
+                            style="left:28%;width:26px;height:44px;background:linear-gradient(var(--amber),var(--fire2));animation-duration:0.9s;animation-delay:0.15s;">
+                        </div>
+                        <div class="flame"
+                            style="left:42%;width:22px;height:38px;background:linear-gradient(var(--fire3),var(--fire1));animation-duration:0.8s;animation-delay:0.3s;">
+                        </div>
+                        <div class="flame"
+                            style="left:57%;width:17px;height:26px;background:linear-gradient(#fff8,var(--fire3));animation-duration:0.6s;animation-delay:0.05s;">
+                        </div>
+                        <div class="smoke-particle"
+                            style="left:25%;bottom:65%;width:24px;height:24px;background:#444;animation-duration:2s;">
+                        </div>
+                        <div class="smoke-particle"
+                            style="left:48%;bottom:55%;width:32px;height:32px;background:#333;animation-duration:2.5s;animation-delay:0.6s;">
+                        </div>
+                        <div class="grid-overlay">
+                            <div class="detection-box"
+                                style="left:8%;top:12%;width:75%;height:78%;border-color:rgba(255,51,51,0.9);">
+                                <div class="det-label" style="background:var(--red);">SPREAD 96%</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="cam-meta">
+                        <div class="cam-id">CAM-04</div>
+                        <div class="cam-badge badge-spread">⚠ SPREADING</div>
+                    </div>
+                </div>
+
+                <!-- CAM-05 Fire -->
+                <div class="cam-card alert">
+                    <div class="cam-feed">
+                        <div class="scene scene-fire"></div>
+                        <div class="flame"
+                            style="left:34%;width:16px;height:24px;background:linear-gradient(var(--fire3),var(--fire1));animation-duration:1s;">
+                        </div>
+                        <div class="flame"
+                            style="left:46%;width:20px;height:30px;background:linear-gradient(var(--amber),var(--fire2));animation-duration:0.85s;animation-delay:0.2s;">
+                        </div>
+                        <div class="grid-overlay">
+                            <div class="detection-box" style="left:20%;top:22%;width:52%;height:62%;">
+                                <div class="det-label">FLAME 92%</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="cam-meta">
+                        <div class="cam-id">CAM-05</div>
+                        <div class="cam-badge badge-fire">FIRE</div>
+                    </div>
+                </div>
+
+                <!-- CAM-06 Clear -->
+                <div class="cam-card">
+                    <div class="cam-feed">
+                        <div class="scene scene-clear">
+                            <span class="scene-icon">🏢</span>
+                        </div>
+                    </div>
+                    <div class="cam-meta">
+                        <div class="cam-id">CAM-06</div>
+                        <div class="cam-badge badge-clear">CLEAR</div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Detection Log -->
+        <div class="log-section">
+            <div class="section-label">DETECTION LOG</div>
+            <div class="log-list" id="log-list">
+                <div class="log-entry log-fire">
+                    <span class="log-time" id="t1">14:23:07</span>
+                    <span class="log-cam">CAM-04</span>
+                    <span class="log-msg">Fire spread detected — Zone B perimeter</span>
+                    <span class="log-conf" style="color:var(--red);">96%</span>
+                </div>
+                <div class="log-entry log-fire">
+                    <span class="log-time" id="t2">14:22:51</span>
+                    <span class="log-cam">CAM-05</span>
+                    <span class="log-msg">Flame ignition confirmed</span>
+                    <span class="log-conf" style="color:var(--fire1);">92%</span>
+                </div>
+                <div class="log-entry log-smoke">
+                    <span class="log-time" id="t3">14:22:14</span>
+                    <span class="log-cam">CAM-02</span>
+                    <span class="log-msg">Smoke plume rising — pre-fire condition</span>
+                    <span class="log-conf" style="color:var(--amber);">87%</span>
+                </div>
+                <div class="log-entry log-ok">
+                    <span class="log-time">14:20:00</span>
+                    <span class="log-cam">ALL</span>
+                    <span class="log-msg">Routine scan complete — no anomalies</span>
+                    <span class="log-conf" style="color:var(--green);">OK</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Deployment Zones -->
+        <div class="camera-section" style="padding-bottom: 8px;">
+            <div class="section-label">DEPLOYMENT ZONES</div>
+        </div>
+        <div class="usecases">
+            <div class="uc">
+                <div class="uc-icon">🏭</div>
+                <div class="uc-name">FACTORIES</div>
+            </div>
+            <div class="uc">
+                <div class="uc-icon">🏢</div>
+                <div class="uc-name">SMART BUILDINGS</div>
+            </div>
+            <div class="uc">
+                <div class="uc-icon">🌲</div>
+                <div class="uc-name">FOREST MONITORING</div>
+            </div>
+        </div>
+
+        <!-- Tech Stack -->
+        <div class="camera-section" style="padding-bottom: 8px;">
+            <div class="section-label">TECH STACK</div>
+        </div>
+        <div class="stack-row">
+            <div class="stack-pill">Python</div>
+            <div class="stack-pill">OpenCV</div>
+            <div class="stack-pill">TensorFlow</div>
+            <div class="stack-pill">Keras</div>
+            <div class="stack-pill">CCTV / RTSP</div>
+        </div>
+
+    </div>
+
+    <script>
+        /* Live FPS counter */
+        setInterval(() => {
+            const el = document.getElementById('fps-val');
+            if (el) el.textContent = 28 + Math.floor(Math.random() * 5);
+        }, 1000);
+
+        /* Live clock on top log entries */
+        function pad(n) { return String(n).padStart(2, '0'); }
+        setInterval(() => {
+            const now = new Date();
+            const ts = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+            const el = document.getElementById('t1');
+            if (el) el.textContent = ts;
+        }, 1000);
+
+        /* Alert action button — simple alert */
+        document.querySelector('.alert-action').addEventListener('click', () => {
+            alert('AUTO-DISPATCH PROTOCOL INITIATED\n\nActions taken:\n• Emergency services notified\n• Zone B evacuation triggered\n• Suppression system armed\n• Incident logged at ' + new Date().toLocaleTimeString());
+        });
+    </script>
+</body>
+
+</html>
